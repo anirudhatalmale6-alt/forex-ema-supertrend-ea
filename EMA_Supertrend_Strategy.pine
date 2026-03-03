@@ -1,0 +1,181 @@
+// =============================================================================
+// EMA 9/26 + Supertrend Trend-Following Strategy
+// Pair: GBP/JPY | Timeframe: 5 min
+// =============================================================================
+// Entry: EMA 9/26 crossover confirmed by Supertrend direction
+// Exit:  Supertrend flip OR EMA crossover (whichever comes first)
+// SL:    Supertrend line + 50 points buffer (trailing)
+// =============================================================================
+
+//@version=5
+strategy("EMA + Supertrend Trend Follower",
+     overlay=true,
+     default_qty_type=strategy.fixed,
+     default_qty_value=1,
+     initial_capital=10000,
+     currency=currency.USD,
+     commission_type=strategy.commission.cash_per_order,
+     commission_value=0.0,
+     slippage=3,
+     calc_on_every_tick=false)
+
+// =============================================================================
+// INPUTS
+// =============================================================================
+// EMA Settings
+emaFastLen   = input.int(9,  "EMA Fast Length", minval=1, group="EMA Settings")
+emaSlowLen   = input.int(26, "EMA Slow Length", minval=1, group="EMA Settings")
+
+// Supertrend Settings
+stPeriod     = input.int(10,   "Supertrend Period",     minval=1,   group="Supertrend Settings")
+stMultiplier = input.float(3.0, "Supertrend Multiplier", minval=0.1, step=0.1, group="Supertrend Settings")
+
+// Risk Settings
+slBuffer     = input.float(0.050, "SL Buffer (points)", minval=0.0, step=0.001, group="Risk Management",
+                 tooltip="Buffer added to Supertrend line for SL. For GBP/JPY: 50 points = 0.050")
+useTrailingSL = input.bool(true, "Use Trailing SL (follows Supertrend)", group="Risk Management")
+
+// Session Filter (optional)
+useSessionFilter = input.bool(false, "Enable Session Filter", group="Session Filter")
+sessionStart     = input.session("0200-1700", "Trading Session (UTC)", group="Session Filter")
+
+// Alert Settings
+enableAlerts = input.bool(true, "Enable Webhook Alerts", group="Alerts")
+
+// =============================================================================
+// CALCULATIONS
+// =============================================================================
+// EMAs
+emaFast = ta.ema(close, emaFastLen)
+emaSlow = ta.ema(close, emaSlowLen)
+
+// EMA Crossover signals
+emaBullCross = ta.crossover(emaFast, emaSlow)
+emaBearCross = ta.crossunder(emaFast, emaSlow)
+
+// Supertrend
+[stLine, stDirection] = ta.supertrend(stMultiplier, stPeriod)
+stBullish = stDirection < 0   // Supertrend is below price (bullish)
+stBearish = stDirection > 0   // Supertrend is above price (bearish)
+stFlipBull = stBullish and not stBullish[1]
+stFlipBear = stBearish and not stBearish[1]
+
+// Session filter
+inSession = useSessionFilter ? not na(time(timeframe.period, sessionStart)) : true
+
+// =============================================================================
+// ENTRY CONDITIONS
+// =============================================================================
+// Long: EMA 9 crosses above EMA 26 AND Supertrend is bullish
+longEntry  = emaBullCross and stBullish and inSession
+
+// Short: EMA 9 crosses below EMA 26 AND Supertrend is bearish
+shortEntry = emaBearCross and stBearish and inSession
+
+// =============================================================================
+// EXIT CONDITIONS
+// =============================================================================
+// Exit Long: Supertrend flips bearish OR EMA bearish crossover (whichever first)
+longExit  = stFlipBear or emaBearCross
+
+// Exit Short: Supertrend flips bullish OR EMA bullish crossover (whichever first)
+shortExit = stFlipBull or emaBullCross
+
+// =============================================================================
+// STOP LOSS CALCULATION
+// =============================================================================
+// For longs: SL = Supertrend line - buffer (below the Supertrend support)
+// For shorts: SL = Supertrend line + buffer (above the Supertrend resistance)
+longSL  = stLine - slBuffer
+shortSL = stLine + slBuffer
+
+// =============================================================================
+// STRATEGY EXECUTION
+// =============================================================================
+// Track if we are in a position
+isLong  = strategy.position_size > 0
+isShort = strategy.position_size < 0
+
+// Long Entry
+if longEntry and not isLong
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Long SL", "Long", stop=longSL)
+
+// Short Entry
+if shortEntry and not isShort
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Short SL", "Short", stop=shortSL)
+
+// Trailing SL: Update stop loss each bar based on current Supertrend
+if useTrailingSL and isLong
+    strategy.exit("Long SL", "Long", stop=longSL)
+
+if useTrailingSL and isShort
+    strategy.exit("Short SL", "Short", stop=shortSL)
+
+// Signal-based exits
+if longExit and isLong
+    strategy.close("Long", comment="Signal Exit")
+
+if shortExit and isShort
+    strategy.close("Short", comment="Signal Exit")
+
+// =============================================================================
+// PLOTS
+// =============================================================================
+// EMAs
+plot(emaFast, "EMA 9",  color=color.new(color.blue, 0),   linewidth=2)
+plot(emaSlow, "EMA 26", color=color.new(color.orange, 0), linewidth=2)
+
+// Supertrend
+stColorBull = color.new(color.green, 0)
+stColorBear = color.new(color.red, 0)
+stPlotColor = stBullish ? stColorBull : stColorBear
+plot(stLine, "Supertrend", color=stPlotColor, linewidth=2, style=plot.style_linebr)
+
+// Entry signals
+plotshape(longEntry  and not isLong,  "Long Entry",  shape.triangleup,   location.belowbar, color.new(color.green, 0), size=size.small)
+plotshape(shortEntry and not isShort, "Short Entry", shape.triangledown, location.abovebar, color.new(color.red, 0),   size=size.small)
+
+// Exit signals
+plotshape(longExit  and isLong,  "Long Exit",  shape.xcross, location.abovebar, color.new(color.orange, 0), size=size.tiny)
+plotshape(shortExit and isShort, "Short Exit", shape.xcross, location.belowbar, color.new(color.orange, 0), size=size.tiny)
+
+// Background color for position
+bgcolor(isLong ? color.new(color.green, 93) : isShort ? color.new(color.red, 93) : na)
+
+// =============================================================================
+// ALERTS (for TradingView → Webhook → MT4 Bridge)
+// =============================================================================
+// Alert JSON format for the webhook bridge
+if enableAlerts
+    if longEntry and not isLong
+        alert('{"action":"buy","symbol":"GBPJPY","lot":0.01,"sl":' + str.tostring(longSL, "#.###") + ',"comment":"EMA+ST Long"}', alert.freq_once_per_bar_close)
+
+    if shortEntry and not isShort
+        alert('{"action":"sell","symbol":"GBPJPY","lot":0.01,"sl":' + str.tostring(shortSL, "#.###") + ',"comment":"EMA+ST Short"}', alert.freq_once_per_bar_close)
+
+    if longExit and isLong
+        alert('{"action":"close_buy","symbol":"GBPJPY","comment":"Signal Exit Long"}', alert.freq_once_per_bar_close)
+
+    if shortExit and isShort
+        alert('{"action":"close_sell","symbol":"GBPJPY","comment":"Signal Exit Short"}', alert.freq_once_per_bar_close)
+
+// =============================================================================
+// INFO TABLE
+// =============================================================================
+var table infoTable = table.new(position.top_right, 2, 6, bgcolor=color.new(color.black, 80), border_width=1)
+if barstate.islast
+    table.cell(infoTable, 0, 0, "EMA Fast",    text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 0, str.tostring(emaFastLen), text_color=color.blue, text_size=size.small)
+    table.cell(infoTable, 0, 1, "EMA Slow",    text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 1, str.tostring(emaSlowLen), text_color=color.orange, text_size=size.small)
+    table.cell(infoTable, 0, 2, "Supertrend",  text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 2, str.tostring(stPeriod) + " / " + str.tostring(stMultiplier), text_color=color.yellow, text_size=size.small)
+    table.cell(infoTable, 0, 3, "Direction",   text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 3, stBullish ? "BULLISH" : "BEARISH", text_color=stBullish ? color.green : color.red, text_size=size.small)
+    table.cell(infoTable, 0, 4, "SL Buffer",   text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 4, str.tostring(slBuffer), text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 0, 5, "Position",    text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 5, isLong ? "LONG" : isShort ? "SHORT" : "FLAT",
+               text_color=isLong ? color.green : isShort ? color.red : color.gray, text_size=size.small)
