@@ -1,0 +1,91 @@
+//@version=5
+strategy("GBPJPY EMA + Supertrend Trend Hold Strategy", overlay=true)
+
+// EMA
+ema9 = ta.ema(close,9)
+ema26 = ta.ema(close,26)
+
+// Supertrend
+atrPeriod = input.int(10,"ATR Length")
+factor = input.float(3.0,"Factor")
+[supertrend,direction] = ta.supertrend(factor,atrPeriod)
+
+// EMA Cross
+bullCross = ta.crossover(ema9,ema26)
+bearCross = ta.crossunder(ema9,ema26)
+
+// Candle confirmation
+bullCandle = close > open
+bearCandle = close < open
+
+// Supertrend direction
+superBull = direction < 0
+superBear = direction > 0
+
+// Confirmation tracking
+var bool emaBullConfirmed = false
+var bool emaBearConfirmed = false
+
+if bullCross and bullCandle
+    emaBullConfirmed := true
+    emaBearConfirmed := false
+
+if bearCross and bearCandle
+    emaBearConfirmed := true
+    emaBullConfirmed := false
+
+// Entry signals
+buySignal = emaBullConfirmed and superBull
+sellSignal = emaBearConfirmed and superBear
+
+// Track entry direction
+var int entryTrend = 0
+
+// Entries
+if buySignal and strategy.position_size <= 0
+    strategy.entry("BUY",strategy.long)
+    emaBullConfirmed := false
+    entryTrend := 1
+    alert('{"action":"buy","symbol":"GBPJPY","lot":"0.01","comment":"EMA+ST Buy"}', alert.freq_once_per_bar_close)
+
+if sellSignal and strategy.position_size >= 0
+    strategy.entry("SELL",strategy.short)
+    emaBearConfirmed := false
+    entryTrend := -1
+    alert('{"action":"sell","symbol":"GBPJPY","lot":"0.01","comment":"EMA+ST Sell"}', alert.freq_once_per_bar_close)
+
+// Stop settings
+buffer = 50 * syminfo.mintick
+maxSL = 300 * syminfo.mintick
+
+// Long SL
+slLongRaw = supertrend - buffer
+slLong = math.max(slLongRaw, close - maxSL)
+
+// Short SL
+slShortRaw = supertrend + buffer
+slShort = math.min(slShortRaw, close + maxSL)
+
+// Trailing stop
+strategy.exit("SL Buy","BUY", stop=slLong)
+strategy.exit("SL Sell","SELL", stop=slShort)
+
+// Exit rules (only next signals)
+if strategy.position_size > 0
+    if bearCross or superBear
+        strategy.close("BUY")
+        alert('{"action":"close_buy","symbol":"GBPJPY","comment":"EMA+ST Exit Long"}', alert.freq_once_per_bar_close)
+
+if strategy.position_size < 0
+    if bullCross or superBull
+        strategy.close("SELL")
+        alert('{"action":"close_sell","symbol":"GBPJPY","comment":"EMA+ST Exit Short"}', alert.freq_once_per_bar_close)
+
+// Plots
+plot(ema9,color=color.green,title="EMA 9")
+plot(ema26,color=color.red,title="EMA 26")
+plot(supertrend,color=direction<0?color.green:color.red,linewidth=2)
+
+// Signals
+plotshape(buySignal,location=location.belowbar,color=color.green,style=shape.labelup,text="BUY")
+plotshape(sellSignal,location=location.abovebar,color=color.red,style=shape.labeldown,text="SELL")
