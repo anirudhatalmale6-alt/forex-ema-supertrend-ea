@@ -1,0 +1,115 @@
+============================================================
+  GBPJPY EMA + SUPERTREND AUTO TRADING - QUICK GUIDE
+============================================================
+
+YOU NEED:
+- Windows PC
+- Python installed (python.org/downloads — check "Add to PATH")
+- MT4 with XM account
+- TradingView account (Pro/Pro+/Premium for webhook alerts)
+
+============================================================
+SETUP (ONE TIME ONLY — 15 MINUTES)
+============================================================
+
+STEP 1: INSTALL
+-----------------
+  Double-click INSTALL.bat
+  It will check Python, find MT4, and copy the EA file.
+
+STEP 2: ADD PINE SCRIPT TO TRADINGVIEW
+-----------------------------------------
+  a) Open TradingView in your browser
+  b) Open GBPJPY chart, set to 5 minute timeframe
+  c) Click "Pine Editor" tab at the bottom
+  d) Delete everything in the editor
+  e) Open the file "PINESCRIPT.txt" in this folder
+  f) Select All (Ctrl+A), Copy (Ctrl+C)
+  g) Paste (Ctrl+V) into the Pine Editor
+  h) Click "Add to chart"
+  i) You should see EMA lines and Supertrend on your chart
+
+STEP 3: SETUP MT4 EA
+-----------------------
+  a) Open/Restart MT4
+  b) In the Navigator panel (left side), expand "Expert Advisors"
+  c) Find "EMA_Supertrend_Bridge"
+  d) Drag it onto your GBPJPY chart
+  e) In the popup:
+     - Common tab: Check "Allow DLL imports"
+     - Inputs tab: Lot size is 0.01 by default
+     - Click OK
+  f) Make sure the "AutoTrading" button in toolbar is GREEN
+  g) You should see "EMA + Supertrend Bridge" info on the chart
+
+STEP 4: START THE BRIDGE
+---------------------------
+  Double-click START_BRIDGE.bat
+  Keep this window OPEN — it's the connection between TV and MT4.
+
+STEP 5: CREATE TRADINGVIEW ALERT
+-----------------------------------
+  a) In TradingView, right-click on the strategy name on the chart
+  b) Select "Add Alert..."
+  c) Condition: Select "GBPJPY EMA + Supertrend Trend Hold Strategy"
+  d) Check "Webhook URL" box
+  e) Enter URL: http://YOUR_PC_IP:5000/
+
+     TO FIND YOUR PC IP:
+     - Open Command Prompt
+     - Type: ipconfig
+     - Look for "IPv4 Address" (example: 192.168.1.100)
+     - Your webhook URL becomes: http://192.168.1.100:5000/
+
+     NOTE: If you are behind a router, you need to set up
+     port forwarding (port 5000) OR use a service like ngrok.
+
+     EASIER OPTION WITH NGROK:
+     - Download ngrok from ngrok.com
+     - Run: ngrok http 5000
+     - Use the https URL it gives you as your webhook URL
+
+  f) Set alert name: "GBPJPY Auto Trade"
+  g) Set expiration: "Open-ended" (if available on your plan)
+  h) Click "Create"
+
+============================================================
+DAILY USAGE (AFTER SETUP IS DONE)
+============================================================
+
+  1. Open MT4 (EA loads automatically on your chart)
+  2. Double-click START_BRIDGE.bat
+  3. That's it! Trades will execute automatically.
+
+  To STOP auto-trading:
+  - Close the bridge window, OR
+  - Click the "AutoTrading" button in MT4 to turn it OFF
+
+============================================================
+IMPORTANT NOTES
+============================================================
+
+  - TradingView webhook alerts require a PAID plan (Pro or above)
+  - The bridge window (START_BRIDGE.bat) must stay open
+  - MT4 must be running with AutoTrading enabled
+  - Default lot size: 0.01 (can change in EA settings)
+  - Max drawdown protection: 15% (EA pauses trading if exceeded)
+  - Strategy: EMA 9/26 crossover + Supertrend confirmation on 5min
+
+============================================================
+TROUBLESHOOTING
+============================================================
+
+  Problem: No trades executing
+  Fix: Check all 3 are running: TradingView alert, Bridge window, MT4 EA
+
+  Problem: EA shows red face icon
+  Fix: Click AutoTrading button to turn it green
+
+  Problem: "Python not found"
+  Fix: Install Python from python.org and check "Add to PATH"
+
+  Problem: Bridge says "port already in use"
+  Fix: Close any other instance of the bridge, then try again
+
+============================================================
