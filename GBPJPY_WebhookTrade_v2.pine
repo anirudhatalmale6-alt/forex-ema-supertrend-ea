@@ -1,0 +1,69 @@
+//@version=5
+strategy("GBPJPY EMA + Supertrend (WebhookTrade)", overlay=true)
+
+ema9 = ta.ema(close, 9)
+ema26 = ta.ema(close, 26)
+
+atrPeriod = input.int(10, "ATR Length")
+factor = input.float(3.0, "Factor")
+[supertrend, direction] = ta.supertrend(factor, atrPeriod)
+
+bullCross = ta.crossover(ema9, ema26)
+bearCross = ta.crossunder(ema9, ema26)
+bullCandle = close > open
+bearCandle = close < open
+superBull = direction < 0
+superBear = direction > 0
+
+var bool emaBullConfirmed = false
+var bool emaBearConfirmed = false
+var int entryTrend = 0
+
+if bullCross and bullCandle
+    emaBullConfirmed := true
+    emaBearConfirmed := false
+
+if bearCross and bearCandle
+    emaBearConfirmed := true
+    emaBullConfirmed := false
+
+buySignal = emaBullConfirmed and superBull
+sellSignal = emaBearConfirmed and superBear
+
+if buySignal and strategy.position_size <= 0
+    strategy.entry("BUY", strategy.long)
+    emaBullConfirmed := false
+    entryTrend := 1
+    alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY","action":"buy","size":0.01}', alert.freq_once_per_bar_close)
+
+if sellSignal and strategy.position_size >= 0
+    strategy.entry("SELL", strategy.short)
+    emaBearConfirmed := false
+    entryTrend := -1
+    alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY","action":"sell","size":0.01}', alert.freq_once_per_bar_close)
+
+buffer = 50 * syminfo.mintick
+maxSL = 300 * syminfo.mintick
+slLongRaw = supertrend - buffer
+slLong = math.max(slLongRaw, close - maxSL)
+slShortRaw = supertrend + buffer
+slShort = math.min(slShortRaw, close + maxSL)
+
+strategy.exit("SL Buy", "BUY", stop=slLong)
+strategy.exit("SL Sell", "SELL", stop=slShort)
+
+if strategy.position_size > 0
+    if bearCross or superBear
+        strategy.close("BUY")
+        alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY","action":"close_buy","size":0.01}', alert.freq_once_per_bar_close)
+
+if strategy.position_size < 0
+    if bullCross or superBull
+        strategy.close("SELL")
+        alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY","action":"close_sell","size":0.01}', alert.freq_once_per_bar_close)
+
+plot(ema9, color=color.green, title="EMA 9")
+plot(ema26, color=color.red, title="EMA 26")
+plot(supertrend, color=direction < 0 ? color.green : color.red, linewidth=2)
+plotshape(buySignal, location=location.belowbar, color=color.green, style=shape.labelup, text="BUY")
+plotshape(sellSignal, location=location.abovebar, color=color.red, style=shape.labeldown, text="SELL")
