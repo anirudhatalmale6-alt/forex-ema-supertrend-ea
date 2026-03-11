@@ -32,18 +32,13 @@ buyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatr
 sellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"sell","size":0.01,"execution_mode":"close_opposite"}'
 closeBuyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"close_buy","size":0.01}'
 closeSellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"close_sell","size":0.01}'
-closeAllJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"close_all","size":0.01}'
 
 if buySignal and strategy.position_size <= 0
-    if strategy.position_size < 0
-        alert(closeSellJSON, alert.freq_once_per_bar_close)
     strategy.entry("BUY", strategy.long, alert_message=buyJSON)
     emaBullConfirmed := false
     entryTrend := 1
 
 if sellSignal and strategy.position_size >= 0
-    if strategy.position_size > 0
-        alert(closeBuyJSON, alert.freq_once_per_bar_close)
     strategy.entry("SELL", strategy.short, alert_message=sellJSON)
     emaBearConfirmed := false
     entryTrend := -1
