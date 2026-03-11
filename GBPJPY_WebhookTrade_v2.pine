@@ -10,8 +10,6 @@ factor = input.float(3.0, "Factor")
 
 bullCross = ta.crossover(ema9, ema26)
 bearCross = ta.crossunder(ema9, ema26)
-bullCandle = close > open
-bearCandle = close < open
 superBull = direction < 0
 superBear = direction > 0
 
@@ -19,11 +17,11 @@ var bool emaBullConfirmed = false
 var bool emaBearConfirmed = false
 var int entryTrend = 0
 
-if bullCross and bullCandle
+if bullCross
     emaBullConfirmed := true
     emaBearConfirmed := false
 
-if bearCross and bearCandle
+if bearCross
     emaBearConfirmed := true
     emaBullConfirmed := false
 
