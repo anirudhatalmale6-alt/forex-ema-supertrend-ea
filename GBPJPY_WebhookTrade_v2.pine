@@ -34,13 +34,13 @@ if buySignal and strategy.position_size <= 0
     strategy.entry("BUY", strategy.long)
     emaBullConfirmed := false
     entryTrend := 1
-    alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY","action":"buy","size":0.01}', alert.freq_once_per_bar_close)
+    alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"buy","size":0.01}', alert.freq_once_per_bar_close)
 
 if sellSignal and strategy.position_size >= 0
     strategy.entry("SELL", strategy.short)
     emaBearConfirmed := false
     entryTrend := -1
-    alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY","action":"sell","size":0.01}', alert.freq_once_per_bar_close)
+    alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"sell","size":0.01}', alert.freq_once_per_bar_close)
 
 buffer = 50 * syminfo.mintick
 maxSL = 300 * syminfo.mintick
@@ -55,12 +55,12 @@ strategy.exit("SL Sell", "SELL", stop=slShort)
 if strategy.position_size > 0
     if bearCross or superBear
         strategy.close("BUY")
-        alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY","action":"close_buy","size":0.01}', alert.freq_once_per_bar_close)
+        alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"close_buy","size":0.01}', alert.freq_once_per_bar_close)
 
 if strategy.position_size < 0
     if bullCross or superBull
         strategy.close("SELL")
-        alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY","action":"close_sell","size":0.01}', alert.freq_once_per_bar_close)
+        alert('{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"close_sell","size":0.01}', alert.freq_once_per_bar_close)
 
 plot(ema9, color=color.green, title="EMA 9")
 plot(ema26, color=color.red, title="EMA 26")
