@@ -17,7 +17,7 @@ var bool emaBullConfirmed = false
 var bool emaBearConfirmed = false
 var int entryTrend = 0
 var bool tradedThisTrend = false
-var int prevDirection = 0
+var float prevDirection = 0
 
 supertrendFlipped = direction != prevDirection
 prevDirection := direction
