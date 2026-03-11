@@ -17,10 +17,12 @@ var bool emaBullConfirmed = false
 var bool emaBearConfirmed = false
 var int entryTrend = 0
 var bool tradedThisTrend = false
-var float prevDirection = 0
+var bool wasBull = false
+var bool wasBear = false
 
-supertrendFlipped = direction != prevDirection
-prevDirection := direction
+supertrendFlipped = (superBull and wasBear) or (superBear and wasBull)
+wasBull := superBull
+wasBear := superBear
 
 if supertrendFlipped
     tradedThisTrend := false
