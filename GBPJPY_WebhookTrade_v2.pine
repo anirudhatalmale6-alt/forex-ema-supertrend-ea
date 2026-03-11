@@ -16,6 +16,14 @@ superBear = direction > 0
 var bool emaBullConfirmed = false
 var bool emaBearConfirmed = false
 var int entryTrend = 0
+var bool tradedThisTrend = false
+var int prevDirection = 0
+
+supertrendFlipped = direction != prevDirection
+prevDirection := direction
+
+if supertrendFlipped
+    tradedThisTrend := false
 
 if bullCross
     emaBullConfirmed := true
@@ -25,8 +33,8 @@ if bearCross
     emaBearConfirmed := true
     emaBullConfirmed := false
 
-buySignal = emaBullConfirmed and superBull
-sellSignal = emaBearConfirmed and superBear
+buySignal = emaBullConfirmed and superBull and not tradedThisTrend
+sellSignal = emaBearConfirmed and superBear and not tradedThisTrend
 
 buyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"buy","size":0.01,"execution_mode":"close_opposite"}'
 sellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"sell","size":0.01,"execution_mode":"close_opposite"}'
@@ -37,11 +45,13 @@ if buySignal and strategy.position_size <= 0
     strategy.entry("BUY", strategy.long, alert_message=buyJSON)
     emaBullConfirmed := false
     entryTrend := 1
+    tradedThisTrend := true
 
 if sellSignal and strategy.position_size >= 0
     strategy.entry("SELL", strategy.short, alert_message=sellJSON)
     emaBearConfirmed := false
     entryTrend := -1
+    tradedThisTrend := true
 
 buffer = 50 * syminfo.mintick
 maxSL = 300 * syminfo.mintick
