@@ -1,7 +1,7 @@
 //@version=5
-strategy("EURUSD EMA 9/26 + Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=true)
+strategy("EURUSD Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=true)
 
-// EMA
+// EMA (for visual reference only)
 ema9 = ta.ema(close, 9)
 ema26 = ta.ema(close, 26)
 
@@ -16,61 +16,21 @@ superBear = direction > 0
 superFlipBull = superBull and direction[1] > 0
 superFlipBear = superBear and direction[1] < 0
 
-// EMA Cross
-bullCross = ta.crossover(ema9, ema26)
-bearCross = ta.crossunder(ema9, ema26)
-
 // Volatility Filter
 atr = ta.atr(14)
 volatility = atr > ta.sma(atr, 20)
 
-// Track trades per trend
+// 1 trade per supertrend
 var bool tradeTaken = false
 
-// EMA confirmation memory
-var bool emaBullConfirmed = false
-var bool emaBearConfirmed = false
-
-// 2nd candle entry tracking
-var bool buyReady = false
-var bool sellReady = false
-
-// Reset when Supertrend flips
 if superFlipBull or superFlipBear
     tradeTaken := false
 
-// EMA confirmation
-if bullCross
-    emaBullConfirmed := true
-    emaBearConfirmed := false
+// 2nd candle entry — signal on flip, enter next bar
+buyEntry = superFlipBull[1] and superBull and volatility and not tradeTaken
+sellEntry = superFlipBear[1] and superBear and volatility and not tradeTaken
 
-if bearCross
-    emaBearConfirmed := true
-    emaBullConfirmed := false
-
-// Signal fires when EMA confirmed + Supertrend confirms
-buySignalRaw = emaBullConfirmed and superBull and volatility and not tradeTaken
-sellSignalRaw = emaBearConfirmed and superBear and volatility and not tradeTaken
-
-// Set ready flag on signal bar, enter on NEXT bar (2nd candle)
-if buySignalRaw and not buyReady and not sellReady
-    buyReady := true
-
-if sellSignalRaw and not sellReady and not buyReady
-    sellReady := true
-
-// Cancel ready flags if conditions change
-if superBear
-    buyReady := false
-
-if superBull
-    sellReady := false
-
-// Enter on 2nd candle (1 bar after signal)
-buyEntry = buyReady[1] and superBull and not tradeTaken
-sellEntry = sellReady[1] and superBear and not tradeTaken
-
-// Track actual entries for clean labels
+// Track entries for clean labels
 var bool justBought = false
 var bool justSold = false
 justBought := false
@@ -82,19 +42,15 @@ sellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metat
 closeBuyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"close_buy","size":0.01}'
 closeSellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"close_sell","size":0.01}'
 
-// Entries on 2nd candle
+// Entries on 2nd candle after supertrend flip
 if buyEntry
     strategy.entry("BUY", strategy.long, alert_message=buyJSON)
     tradeTaken := true
-    emaBullConfirmed := false
-    buyReady := false
     justBought := true
 
 if sellEntry
     strategy.entry("SELL", strategy.short, alert_message=sellJSON)
     tradeTaken := true
-    emaBearConfirmed := false
-    sellReady := false
     justSold := true
 
 // Stop Loss (120 point buffer)
