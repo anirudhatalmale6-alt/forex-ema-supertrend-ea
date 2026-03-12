@@ -21,10 +21,6 @@ superFlipBear = superBear and direction[1] < 0
 bullCross = ta.crossover(ema9, ema26)
 bearCross = ta.crossunder(ema9, ema26)
 
-// Volatility Filter
-atr = ta.atr(14)
-volatility = atr > ta.sma(atr, 20)
-
 // Track trades per trend
 var bool tradeTaken = false
 
@@ -33,8 +29,8 @@ if superFlipBull or superFlipBear
     tradeTaken := false
 
 // Entry Conditions
-buySignal = bullCross and superBull and volatility and not tradeTaken
-sellSignal = bearCross and superBear and volatility and not tradeTaken
+buySignal = bullCross and superBull and not tradeTaken
+sellSignal = bearCross and superBear and not tradeTaken
 
 // Track entries for clean labels
 var bool justBought = false
