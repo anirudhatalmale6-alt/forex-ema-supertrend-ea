@@ -1,7 +1,7 @@
 //@version=5
-strategy("EURUSD EMA 9/26 + Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=true)
+strategy("EURUSD Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=true)
 
-// EMA
+// EMA (visual reference only)
 ema9 = ta.ema(close, 9)
 ema26 = ta.ema(close, 26)
 
@@ -17,20 +17,15 @@ superBear = direction > 0
 superFlipBull = superBull and direction[1] > 0
 superFlipBear = superBear and direction[1] < 0
 
-// EMA Cross
-bullCross = ta.crossover(ema9, ema26)
-bearCross = ta.crossunder(ema9, ema26)
-
-// Track trades per trend
+// 1 trade per supertrend
 var bool tradeTaken = false
 
-// Reset when Supertrend flips
 if superFlipBull or superFlipBear
     tradeTaken := false
 
-// Entry Conditions
-buySignal = bullCross and superBull and not tradeTaken
-sellSignal = bearCross and superBear and not tradeTaken
+// Entry on supertrend flip only
+buySignal = superFlipBull and not tradeTaken
+sellSignal = superFlipBear and not tradeTaken
 
 // Track entries for clean labels
 var bool justBought = false
@@ -55,8 +50,8 @@ if sellSignal
     tradeTaken := true
     justSold := true
 
-// Stop Loss (supertrend + 120 buffer, max 300 points)
-buffer = 120 * syminfo.mintick
+// Stop Loss (supertrend + 150 buffer, max 300 points)
+buffer = 150 * syminfo.mintick
 maxSL = 300 * syminfo.mintick
 
 slLongRaw = supertrend - buffer
@@ -80,6 +75,5 @@ plot(ema9, color=color.green, title="EMA 9")
 plot(ema26, color=color.red, title="EMA 26")
 plot(supertrend, color=direction < 0 ? color.green : color.red, linewidth=2)
 
-// Signals
 plotshape(justBought, location=location.belowbar, color=color.green, style=shape.labelup, text="BUY")
 plotshape(justSold, location=location.abovebar, color=color.red, style=shape.labeldown, text="SELL")
