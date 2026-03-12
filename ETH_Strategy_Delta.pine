@@ -1,0 +1,98 @@
+//@version=6
+strategy("ETH Trend Catcher (Delta Exchange)", overlay=true, process_orders_on_close=true)
+
+// === INPUTS ===
+emaFast = input.int(21, "Fast EMA")
+emaSlow = input.int(55, "Slow EMA")
+atrPeriod = input.int(14, "Supertrend ATR Length")
+factor = input.float(4.0, "Supertrend Factor")
+rsiLen = input.int(14, "RSI Length")
+rsiBuyMin = input.int(40, "RSI Buy Min")
+rsiSellMax = input.int(60, "RSI Sell Max")
+
+// === INDICATORS ===
+ema21 = ta.ema(close, emaFast)
+ema55 = ta.ema(close, emaSlow)
+[supertrend, direction] = ta.supertrend(factor, atrPeriod)
+rsi = ta.rsi(close, rsiLen)
+
+// === CONDITIONS ===
+bullCross = ta.crossover(ema21, ema55)
+bearCross = ta.crossunder(ema21, ema55)
+superBull = direction < 0
+superBear = direction > 0
+
+// === 1 TRADE PER SUPERTREND ===
+var bool tradedThisTrend = false
+var bool wasBull = false
+var bool wasBear = false
+
+supertrendFlipped = (superBull and wasBear) or (superBear and wasBull)
+wasBull := superBull
+wasBear := superBear
+
+if supertrendFlipped
+    tradedThisTrend := false
+
+// === EMA CONFIRMATION ===
+var bool emaBullConfirmed = false
+var bool emaBearConfirmed = false
+
+if bullCross
+    emaBullConfirmed := true
+    emaBearConfirmed := false
+
+if bearCross
+    emaBearConfirmed := true
+    emaBullConfirmed := false
+
+// === SIGNALS (EMA cross + Supertrend + RSI filter) ===
+buySignal = emaBullConfirmed and superBull and rsi > rsiBuyMin and not tradedThisTrend
+sellSignal = emaBearConfirmed and superBear and rsi < rsiSellMax and not tradedThisTrend
+
+// === TRACK ENTRIES FOR CLEAN LABELS ===
+var bool justBought = false
+var bool justSold = false
+justBought := false
+justSold := false
+
+// === ENTRIES ===
+if buySignal and strategy.position_size <= 0
+    strategy.entry("BUY", strategy.long)
+    emaBullConfirmed := false
+    tradedThisTrend := true
+    justBought := true
+
+if sellSignal and strategy.position_size >= 0
+    strategy.entry("SELL", strategy.short)
+    emaBearConfirmed := false
+    tradedThisTrend := true
+    justSold := true
+
+// === STOP LOSS (Supertrend based) ===
+buffer = 50 * syminfo.mintick
+maxSL = 500 * syminfo.mintick
+
+slLong = math.max(supertrend - buffer, close - maxSL)
+slShort = math.min(supertrend + buffer, close + maxSL)
+
+strategy.exit("SL Buy", "BUY", stop=slLong)
+strategy.exit("SL Sell", "SELL", stop=slShort)
+
+// === EXIT ONLY ON SUPERTREND CHANGE ===
+if strategy.position_size > 0 and superBear
+    strategy.close("BUY")
+
+if strategy.position_size < 0 and superBull
+    strategy.close("SELL")
+
+// === PLOTS ===
+plot(ema21, color=color.green, title="EMA 21")
+plot(ema55, color=color.red, title="EMA 55")
+plot(supertrend, color=direction < 0 ? color.green : color.red, linewidth=2)
+
+plotshape(justBought, location=location.belowbar, color=color.green, style=shape.labelup, text="BUY")
+plotshape(justSold, location=location.abovebar, color=color.red, style=shape.labeldown, text="SELL")
+
+// === RSI PANEL ===
+// (RSI shown in strategy tester, not on chart to keep it clean)
