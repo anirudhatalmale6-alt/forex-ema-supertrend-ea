@@ -1,0 +1,25 @@
+//@version=5
+indicator("Supertrend Flip Alert", overlay=true)
+
+atrPeriod = input.int(10, "ATR Length")
+factor = input.float(3.0, "Supertrend Factor")
+[supertrend, direction] = ta.supertrend(factor, atrPeriod)
+
+superBull = direction < 0
+superBear = direction > 0
+
+// Detect flip
+flipBull = superBull and direction[1] > 0
+flipBear = superBear and direction[1] < 0
+
+// Plot supertrend line
+plot(supertrend, color=superBull ? color.green : color.red, linewidth=2, title="Supertrend")
+
+// Labels on chart
+plotshape(flipBull, location=location.belowbar, color=color.green, style=shape.labelup, text="BULL", title="Bullish Flip")
+plotshape(flipBear, location=location.abovebar, color=color.red, style=shape.labeldown, text="BEAR", title="Bearish Flip")
+
+// Alerts
+alertcondition(flipBull, title="Supertrend Bullish", message="Supertrend flipped BULLISH on {{ticker}} ({{interval}})")
+alertcondition(flipBear, title="Supertrend Bearish", message="Supertrend flipped BEARISH on {{ticker}} ({{interval}})")
+alertcondition(flipBull or flipBear, title="Supertrend Any Flip", message="Supertrend flipped on {{ticker}} ({{interval}})")
