@@ -1,5 +1,5 @@
 //@version=6
-strategy("GBPJPY EMA + Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=true)
+strategy("GBPJPY EMA + Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=false)
 
 // EMA
 ema9 = ta.ema(close, 9)
