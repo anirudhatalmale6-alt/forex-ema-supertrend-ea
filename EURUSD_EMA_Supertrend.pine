@@ -21,22 +21,6 @@ superFlipBear = superBear and direction[1] < 0
 bullCross = ta.crossover(ema9, ema26)
 bearCross = ta.crossunder(ema9, ema26)
 
-// EMA confirmation memory — remembers crossover even if it happened before supertrend
-var bool emaBullConfirmed = false
-var bool emaBearConfirmed = false
-
-if bullCross
-    emaBullConfirmed := true
-    emaBearConfirmed := false
-
-if bearCross
-    emaBearConfirmed := true
-    emaBullConfirmed := false
-
-// Volatility Filter
-atr = ta.atr(14)
-volatility = atr > ta.sma(atr, 20)
-
 // Track trades per trend
 var bool tradeTaken = false
 
@@ -44,11 +28,11 @@ var bool tradeTaken = false
 if superFlipBull or superFlipBear
     tradeTaken := false
 
-// Entry: EMA confirmed (now or earlier) + supertrend direction + volatility
-buySignal = emaBullConfirmed and superBull and volatility and not tradeTaken
-sellSignal = emaBearConfirmed and superBear and volatility and not tradeTaken
+// Entry Conditions (no volatility filter)
+buySignal = bullCross and superBull and not tradeTaken
+sellSignal = bearCross and superBear and not tradeTaken
 
-// Track entries for clean labels
+// Track entries for labels
 var bool justBought = false
 var bool justSold = false
 justBought := false
@@ -63,17 +47,15 @@ closeSellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"
 // Entries
 if buySignal
     strategy.entry("BUY", strategy.long, alert_message=buyJSON)
-    emaBullConfirmed := false
     tradeTaken := true
     justBought := true
 
 if sellSignal
     strategy.entry("SELL", strategy.short, alert_message=sellJSON)
-    emaBearConfirmed := false
     tradeTaken := true
     justSold := true
 
-// Stop Loss (supertrend + 50 buffer, max 200 points)
+// Stop Loss
 buffer = 50 * syminfo.mintick
 maxSL = 200 * syminfo.mintick
 
