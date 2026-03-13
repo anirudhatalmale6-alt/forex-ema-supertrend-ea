@@ -1,12 +1,12 @@
 //@version=5
-strategy("EURUSD Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=false)
+strategy("EURUSD EMA 9/26 + Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=false)
 
-// EMA (visual reference only)
+// EMA
 ema9 = ta.ema(close, 9)
 ema26 = ta.ema(close, 26)
 
 // Supertrend
-atrPeriod = input.int(10, "ATR Length")
+atrPeriod = input.int(13, "ATR Length")
 factor = input.float(3.0, "Supertrend Factor")
 [supertrend, direction] = ta.supertrend(factor, atrPeriod)
 
@@ -17,19 +17,36 @@ superBear = direction > 0
 superFlipBull = superBull and direction[1] > 0
 superFlipBear = superBear and direction[1] < 0
 
-// Count bars since flip (3-bar entry window)
-barsSinceFlipBull = ta.barssince(superFlipBull)
-barsSinceFlipBear = ta.barssince(superFlipBear)
+// EMA Cross
+bullCross = ta.crossover(ema9, ema26)
+bearCross = ta.crossunder(ema9, ema26)
 
-// 1 trade per supertrend
+// EMA confirmation memory — remembers crossover even if it happened before supertrend
+var bool emaBullConfirmed = false
+var bool emaBearConfirmed = false
+
+if bullCross
+    emaBullConfirmed := true
+    emaBearConfirmed := false
+
+if bearCross
+    emaBearConfirmed := true
+    emaBullConfirmed := false
+
+// Volatility Filter
+atr = ta.atr(14)
+volatility = atr > ta.sma(atr, 20)
+
+// Track trades per trend
 var bool tradeTaken = false
 
+// Reset when Supertrend flips
 if superFlipBull or superFlipBear
     tradeTaken := false
 
-// Entry within 3 bars of supertrend flip
-buySignal = superBull and not tradeTaken and barsSinceFlipBull <= 3
-sellSignal = superBear and not tradeTaken and barsSinceFlipBear <= 3
+// Entry: EMA confirmed (now or earlier) + supertrend direction + volatility
+buySignal = emaBullConfirmed and superBull and volatility and not tradeTaken
+sellSignal = emaBearConfirmed and superBear and volatility and not tradeTaken
 
 // Track entries for clean labels
 var bool justBought = false
@@ -38,25 +55,27 @@ justBought := false
 justSold := false
 
 // Webhook JSON
-buyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"buy","size":0.01,"execution_mode":"close_opposite"}'
-sellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"sell","size":0.01,"execution_mode":"close_opposite"}'
-closeBuyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"close_buy","size":0.01}'
-closeSellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"close_sell","size":0.01}'
+buyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"buy","size":0.02,"execution_mode":"close_opposite"}'
+sellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"sell","size":0.02,"execution_mode":"close_opposite"}'
+closeBuyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"close_buy","size":0.02}'
+closeSellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"close_sell","size":0.02}'
 
 // Entries
 if buySignal
     strategy.entry("BUY", strategy.long, alert_message=buyJSON)
+    emaBullConfirmed := false
     tradeTaken := true
     justBought := true
 
 if sellSignal
     strategy.entry("SELL", strategy.short, alert_message=sellJSON)
+    emaBearConfirmed := false
     tradeTaken := true
     justSold := true
 
-// Stop Loss (supertrend + 150 buffer, max 300 points)
-buffer = 150 * syminfo.mintick
-maxSL = 300 * syminfo.mintick
+// Stop Loss (supertrend + 50 buffer, max 200 points)
+buffer = 50 * syminfo.mintick
+maxSL = 200 * syminfo.mintick
 
 slLongRaw = supertrend - buffer
 slLong = math.max(slLongRaw, close - maxSL)
@@ -67,7 +86,7 @@ slShort = math.min(slShortRaw, close + maxSL)
 strategy.exit("Exit Buy", "BUY", stop=slLong, alert_message=closeBuyJSON)
 strategy.exit("Exit Sell", "SELL", stop=slShort, alert_message=closeSellJSON)
 
-// Exit only when Supertrend flips
+// Exit when Supertrend flips
 if strategy.position_size > 0 and superFlipBear
     strategy.close("BUY", alert_message=closeBuyJSON)
 
@@ -79,5 +98,6 @@ plot(ema9, color=color.green, title="EMA 9")
 plot(ema26, color=color.red, title="EMA 26")
 plot(supertrend, color=direction < 0 ? color.green : color.red, linewidth=2)
 
+// Signals
 plotshape(justBought, location=location.belowbar, color=color.green, style=shape.labelup, text="BUY")
 plotshape(justSold, location=location.abovebar, color=color.red, style=shape.labeldown, text="SELL")
