@@ -1,5 +1,5 @@
 //@version=5
-strategy("EURUSD Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=true)
+strategy("EURUSD Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=false)
 
 // EMA (visual reference only)
 ema9 = ta.ema(close, 9)
@@ -17,15 +17,19 @@ superBear = direction > 0
 superFlipBull = superBull and direction[1] > 0
 superFlipBear = superBear and direction[1] < 0
 
+// Count bars since flip (3-bar entry window)
+barsSinceFlipBull = ta.barssince(superFlipBull)
+barsSinceFlipBear = ta.barssince(superFlipBear)
+
 // 1 trade per supertrend
 var bool tradeTaken = false
 
 if superFlipBull or superFlipBear
     tradeTaken := false
 
-// Entry on supertrend flip only
-buySignal = superFlipBull and not tradeTaken
-sellSignal = superFlipBear and not tradeTaken
+// Entry within 3 bars of supertrend flip
+buySignal = superBull and not tradeTaken and barsSinceFlipBull <= 3
+sellSignal = superBear and not tradeTaken and barsSinceFlipBear <= 3
 
 // Track entries for clean labels
 var bool justBought = false
