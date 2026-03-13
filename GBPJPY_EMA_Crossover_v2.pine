@@ -48,13 +48,20 @@ var bool justSold = false
 justBought := false
 justSold := false
 
-// Webhook JSON
-buyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"buy","size":0.02,"execution_mode":"close_opposite"}'
-sellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"sell","size":0.02,"execution_mode":"close_opposite"}'
+// Webhook JSON — NO close_opposite, plain open/close actions
+buyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"buy","size":0.02}'
+sellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"sell","size":0.02}'
 closeBuyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"close_buy","size":0.02}'
 closeSellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"close_sell","size":0.02}'
 
-// Entries
+// FIRST: Close existing position on supertrend change
+if strategy.position_size > 0 and superBear
+    strategy.close("BUY", alert_message=closeBuyJSON)
+
+if strategy.position_size < 0 and superBull
+    strategy.close("SELL", alert_message=closeSellJSON)
+
+// THEN: New entries
 if buySignal and strategy.position_size <= 0
     strategy.entry("BUY", strategy.long, alert_message=buyJSON)
     emaBullConfirmed := false
@@ -80,13 +87,6 @@ slShort = math.min(slShortRaw, close + maxSL)
 
 strategy.exit("SL Buy", "BUY", stop=slLong, alert_message=closeBuyJSON)
 strategy.exit("SL Sell", "SELL", stop=slShort, alert_message=closeSellJSON)
-
-// Trend exit — ONLY on supertrend change
-if strategy.position_size > 0 and superBear
-    strategy.close("BUY", alert_message=closeBuyJSON)
-
-if strategy.position_size < 0 and superBull
-    strategy.close("SELL", alert_message=closeSellJSON)
 
 // Plots
 plot(ema9, color=color.green, title="EMA 9")

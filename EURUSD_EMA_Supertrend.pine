@@ -38,13 +38,20 @@ var bool justSold = false
 justBought := false
 justSold := false
 
-// Webhook JSON
-buyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"buy","size":0.02,"execution_mode":"close_opposite"}'
-sellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"sell","size":0.02,"execution_mode":"close_opposite"}'
+// Webhook JSON — NO close_opposite, plain open/close actions
+buyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"buy","size":0.02}'
+sellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"sell","size":0.02}'
 closeBuyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"close_buy","size":0.02}'
 closeSellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"EURUSD#","action":"close_sell","size":0.02}'
 
-// Entries
+// FIRST: Close existing position on supertrend flip
+if strategy.position_size > 0 and superFlipBear
+    strategy.close("BUY", alert_message=closeBuyJSON)
+
+if strategy.position_size < 0 and superFlipBull
+    strategy.close("SELL", alert_message=closeSellJSON)
+
+// THEN: New entries
 if buySignal
     strategy.entry("BUY", strategy.long, alert_message=buyJSON)
     tradeTaken := true
@@ -67,13 +74,6 @@ slShort = math.min(slShortRaw, close + maxSL)
 
 strategy.exit("Exit Buy", "BUY", stop=slLong, alert_message=closeBuyJSON)
 strategy.exit("Exit Sell", "SELL", stop=slShort, alert_message=closeSellJSON)
-
-// Exit when Supertrend flips
-if strategy.position_size > 0 and superFlipBear
-    strategy.close("BUY", alert_message=closeBuyJSON)
-
-if strategy.position_size < 0 and superFlipBull
-    strategy.close("SELL", alert_message=closeSellJSON)
 
 // Plots
 plot(ema9, color=color.green, title="EMA 9")
