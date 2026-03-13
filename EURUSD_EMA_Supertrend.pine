@@ -1,5 +1,5 @@
 //@version=5
-strategy("EURUSD EMA 9/26 + Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=false)
+strategy("EURUSD EMA 9/26 + Supertrend (WebhookTrade)", overlay=true, process_orders_on_close=true)
 
 // EMA
 ema9 = ta.ema(close, 9)
