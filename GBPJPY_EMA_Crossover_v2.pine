@@ -49,10 +49,10 @@ justBought := false
 justSold := false
 
 // Webhook JSON
-buyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"buy","size":0.01,"execution_mode":"close_opposite"}'
-sellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"sell","size":0.01,"execution_mode":"close_opposite"}'
-closeBuyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"close_buy","size":0.01}'
-closeSellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"close_sell","size":0.01}'
+buyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"buy","size":0.02,"execution_mode":"close_opposite"}'
+sellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"sell","size":0.02,"execution_mode":"close_opposite"}'
+closeBuyJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"close_buy","size":0.02}'
+closeSellJSON = '{"username":"kunal.k91","api_key":"87a21afdbcfe6771","broker":"metatrader","symbol":"GBPJPY#","action":"close_sell","size":0.02}'
 
 // Entries
 if buySignal and strategy.position_size <= 0
@@ -67,14 +67,15 @@ if sellSignal and strategy.position_size >= 0
     tradedThisTrend := true
     justSold := true
 
-// Stop Loss
-buffer = 50 * syminfo.mintick
+// ATR-based Stop Loss
+atrValue = ta.atr(14)
+slBuffer = input.float(1.5, "SL ATR Multiplier") * atrValue
 maxSL = 300 * syminfo.mintick
 
-slLongRaw = supertrend - buffer
+slLongRaw = supertrend - slBuffer
 slLong = math.max(slLongRaw, close - maxSL)
 
-slShortRaw = supertrend + buffer
+slShortRaw = supertrend + slBuffer
 slShort = math.min(slShortRaw, close + maxSL)
 
 strategy.exit("SL Buy", "BUY", stop=slLong, alert_message=closeBuyJSON)
